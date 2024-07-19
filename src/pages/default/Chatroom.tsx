@@ -49,7 +49,6 @@ const Chatroom = () => {
 
     return (
         <VStack w="100%" spacing={4}>
-            
             <Box 
                 borderRadius={"md"} 
                 bg={"white"} 
@@ -60,17 +59,19 @@ const Chatroom = () => {
                 overflowY="auto"
             >
                 {messages.map((msg: any) => (
-                    <Flex key={msg.id} my={5} justifyContent={(msg.username === user?.displayName) ? 'flex-end' : 'flex-start'}>
-                        <Box w="50%">
+                    <Flex key={msg.id} mt={3} justifyContent={(msg.username === user?.displayName) ? 'flex-end' : 'flex-start'}>
+                        <Box maxW="60%">
                             {msg.username === user?.displayName ? (     
-                                <Box mt={5}></Box>
+                                <Box mt={3}></Box>
                             ) : (
                                 <Text fontWeight="bold">{msg.username}</Text>
                             )}
                             <Box
-                                bg={(msg.username === user?.displayName) ? (userData?.profileColor) : 'gray.100'}
+                                bg={(msg.username === user?.displayName) ? (userData?.profileColor) : '#e0e0e0'}
                                 p={3}
                                 borderRadius="lg"
+                                mr={(msg.username === user?.displayName) ? 0 : 'auto'}
+                                ml={(msg.username === user?.displayName) ? 'auto' : 0}
                             >
                                 <Text>{msg.text}</Text>
                             </Box>

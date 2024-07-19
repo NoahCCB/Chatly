@@ -16,7 +16,7 @@ import {
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { auth, db } from '../../firebase'; // Import your Firebase auth instance
 import { useNavigate } from 'react-router-dom'; // Import useNavigate from react-router-dom
-import { doc, setDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
 import { ViewIcon, ViewOffIcon } from '@chakra-ui/icons';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -32,13 +32,22 @@ const Register: React.FC = () => {
     const handleRegister = async (e: React.FormEvent) => {
         e.preventDefault();
         try {
+
+            const usernameQuery = query(collection(db, 'users'), where('displayName', '==', username));
+            const querySnapshot = await getDocs(usernameQuery);
+
+            if (!querySnapshot.empty) {
+                setError('Username is already taken. Please choose another one.');
+                return;
+            }
+            
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
             const userDocRef = doc(db, 'users', userCredential.user.uid);
             
             await setDoc(userDocRef, {
                 displayName: username,
-                profileColor: '#808080', // Default profile color
+                profileColor: '#8edafa', // Default profile color
             });
 
             await updateProfile(userCredential.user, { 
@@ -57,6 +66,10 @@ const Register: React.FC = () => {
 
     const togglePasswordVisibility = () => {
         setShowPassword(!showPassword);
+    };
+
+    const navigateToLogin = () => {
+        navigate('/login');
     };
 
     return (
@@ -114,6 +127,9 @@ const Register: React.FC = () => {
             </FormControl>
             <Button type="submit" colorScheme="blue">
                 Register
+            </Button>
+            <Button variant="link" onClick={navigateToLogin}>
+              Back to login
             </Button>
             </VStack>
         </form>

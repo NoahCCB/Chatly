@@ -11,9 +11,11 @@ import {
     FormControl,
     FormLabel,
     Input,
-    useDisclosure
+    useDisclosure,
+    Alert,
+    AlertIcon
 } from '@chakra-ui/react';
-import { doc, updateDoc } from 'firebase/firestore';
+import { collection, doc, getDocs, query, updateDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
 import { getAuth, signOut } from 'firebase/auth';
 import { useUser } from '../contexts/UserContext';
@@ -22,15 +24,25 @@ import ColorPicker from './ColorPicker';
 const ProfileModal = ({ isOpen, onClose, user }: any) => {
     const { userData, setUserData } = useUser();
     const [username, setUsername] = useState(user?.displayName || '');
+    const [error, setError] = useState('');
     const [profileColor, setProfileColor] = useState(user?.displayName || '#808080'); // Default to gray
 
     const handleSave = async () => {
+        if (username !== userData?.displayName) {
+            const usernameQuery = query(collection(db, 'users'), where('displayName', '==', username));
+            const querySnapshot = await getDocs(usernameQuery);
+
+            if (!querySnapshot.empty) {
+                setError('Username is already taken. Please choose another one.');
+                return;
+            }
+        }
         const userDoc = doc(db, 'users', user.uid);
         await updateDoc(userDoc, {
             displayName: username,
             profileColor,
         });
-        setUserData({ ...userData, profileColor });
+        setUserData({ ...userData, displayName: username, profileColor });
         onClose();
     };
 
@@ -42,21 +54,38 @@ const ProfileModal = ({ isOpen, onClose, user }: any) => {
     };
 
     useEffect(() => {
+        if (isOpen) {
+            setProfileColor(userData?.profileColor);
+            setUsername(userData?.displayName);
+            setError('');
+        }
+    }, [isOpen, userData]);
+
+    const handleClose = () => {
         setProfileColor(userData?.profileColor);
-    }, [userData])
+        setUsername(userData?.displayName);
+        setError('');
+        onClose();
+    }
 
     return (
-        <Modal isOpen={isOpen} onClose={onClose}>
+        <Modal isOpen={isOpen} onClose={handleClose}>
             <ModalOverlay />
             <ModalContent>
                 <ModalHeader>Profile</ModalHeader>
                 <ModalCloseButton />
                 <ModalBody>
+                    {error && (
+                        <Alert status="error">
+                        <AlertIcon />
+                        {error}
+                        </Alert>
+                    )}
                     <FormControl id="username">
                         <FormLabel>Username</FormLabel>
                         <Input
                             value={username}
-                            onChange={(e) => setUsername(e.target.value)}
+                            onChange={(e) => {setUsername(e.target.value); setError('');}}
                         />
                     </FormControl>
                     <FormControl id="color" mt={5}>

@@ -32,7 +32,7 @@ const Header = () => {
                         size="lg"
                         isRound
                         colorScheme="gray"
-                        bg={userData?.profileColor || 'gray'}
+                        bg={userData?.profileColor || '#8edafa'}
                         onClick={onProfileOpen}
                         aria-label={'Profile Button'}
                     />

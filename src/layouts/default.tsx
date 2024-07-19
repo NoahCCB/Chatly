@@ -43,7 +43,7 @@ const Default = () => {
             <UserProvider>
                 <VStack alignContent={"center"}>
                     <Header />
-                    <Box mt={5} w="60%">
+                    <Box mt={5} w={{ base: '100%', md: '60%' }}>
                         <Chatroom />
                     </Box>
                 </VStack>
