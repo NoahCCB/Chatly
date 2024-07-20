@@ -17,6 +17,7 @@ const Chatroom = () => {
     const [message, setMessage] = useState('');
     const [selectedMessageId, setSelectedMessageId] = useState(null);
     const navigate = useNavigate();
+    const [replyTo, setReplyTo] = useState<string | null>(null);
     const endOfMessagesRef = useRef<any>(null);
     const grey = '#e0e0e0';
 
@@ -45,9 +46,10 @@ const Chatroom = () => {
                 timestamp: new Date(),
                 likes: [],
                 dislikes: [],
-                replies: []
+                replyTo: replyTo || null
             });
             setMessage('');
+            setReplyTo(null);
           }
     };
 
@@ -73,10 +75,15 @@ const Chatroom = () => {
         setSelectedMessageId(null);
     };
 
+    const handleReply = (msgId: string) => {
+        setReplyTo(msgId);
+        setSelectedMessageId(null);
+    };
+
     const renderMenu = (msgId: any, isUser: boolean) => (
         <Box 
             position="absolute" 
-            left={isUser ? "-120px" : 'auto' } 
+            left={{base: isUser ? "-78px" : 'auto', md: isUser ? "-166px" : 'auto' }}
             right={isUser ? 'auto' : -3}
             top={0} 
             zIndex={3}
@@ -85,10 +92,11 @@ const Chatroom = () => {
                 <PopoverContent w="auto">
                     <PopoverArrow />
                     <PopoverBody>
-                        <HStack w="full" align="center" spacing={1}>
+                        <Stack direction={{ base: 'column', md: 'row' }} w="full" align="center" spacing={1}>
                             <IconButton onClick={() => handleLike(msgId)} icon={<FaThumbsUp/>} aria-label={'like'}/>
                             <IconButton onClick={() => handleDislike(msgId)}  icon={<FaThumbsDown/>} aria-label={'dislike'}/>
-                        </HStack>
+                            <IconButton onClick={() => handleReply(msgId)} icon={<FaReply />} aria-label="reply" />
+                        </Stack>
                     </PopoverBody>
                 </PopoverContent>
             </Popover>
@@ -100,8 +108,8 @@ const Chatroom = () => {
             setSelectedMessageId(null);
         } else {
             setSelectedMessageId(msgId);
+            setReplyTo(null);
         }
-        
     }
 
     return (
@@ -118,10 +126,37 @@ const Chatroom = () => {
             >
                 {messages.map((msg: any) => {
                     const isUser = (msg.username === user?.displayName);
-                    console.log(msg);
+                    const isReplyTo = replyTo === msg.id;
+                    const repliedMessage = messages.find((message) => message.id === msg.replyTo);
                     return (
                         <Flex key={msg.id} mt={3} justifyContent={isUser ? 'flex-end' : 'flex-start'}>
-                            <Box maxW="60%">
+                            
+                            <Box maxW="60%" 
+                                filter={replyTo && !isReplyTo ? 'blur(4px)' : 'none'}
+                                transition="filter 0.2s ease-in-out"
+                            >
+                                {repliedMessage && (
+                                    <Box
+                                        p={2}
+                                        borderWidth={2}
+                                        borderColor={grey}
+                                        borderRadius="lg"
+                                        mb={2}
+                                        position="relative"
+                                        _after={{
+                                            content: '""',
+                                            position: 'absolute',
+                                            top: '100%',
+                                            left: '50%',
+                                            width: '2px',
+                                            height: isUser ? '10px' : '15px',
+                                            bg: grey,
+                                            transform: isUser ? 'translateX(-100%)' : 'translateX(0)',
+                                        }}
+                                    >
+                                        <Text fontSize="sm" color={"gray.600"}>{repliedMessage.text}</Text>
+                                    </Box>
+                                )}
                                 {msg.username === user?.displayName ? (     
                                     <Box mt={3}></Box>
                                 ) : (
