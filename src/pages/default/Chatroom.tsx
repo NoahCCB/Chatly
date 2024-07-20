@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem } from '@chakra-ui/react';
+import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverHeader, PopoverBody, Stack } from '@chakra-ui/react';
 import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, orderBy, query, doc, getDoc, updateDoc } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -15,7 +15,6 @@ const Chatroom = () => {
     const { userData } = useUser();
     const [messages, setMessages] = useState<any[]>([]);
     const [message, setMessage] = useState('');
-    const [replyTo, setReplyTo] = useState<any>(null);
     const [selectedMessageId, setSelectedMessageId] = useState(null);
     const navigate = useNavigate();
     const endOfMessagesRef = useRef<any>(null);
@@ -74,19 +73,26 @@ const Chatroom = () => {
         setSelectedMessageId(null);
     };
 
-    const handleReply = (msgId: any) => {
-        setReplyTo(msgId);
-        setSelectedMessageId(null);
-    };
-
-    const renderMenu = (msgId: any) => (
-        <Menu isOpen>
-            <MenuList>
-                <MenuItem onClick={() => handleLike(msgId)}>Like</MenuItem>
-                <MenuItem onClick={() => handleDislike(msgId)}>Dislike</MenuItem>
-                <MenuItem onClick={() => handleReply(msgId)}>Reply</MenuItem>
-            </MenuList>
-        </Menu>
+    const renderMenu = (msgId: any, isUser: boolean) => (
+        <Box 
+            position="absolute" 
+            left={isUser ? "-120px" : 'auto' } 
+            right={isUser ? 'auto' : -3}
+            top={0} 
+            zIndex={3}
+        >
+            <Popover isOpen>
+                <PopoverContent w="auto">
+                    <PopoverArrow />
+                    <PopoverBody>
+                        <HStack w="full" align="center" spacing={1}>
+                            <IconButton onClick={() => handleLike(msgId)} icon={<FaThumbsUp/>} aria-label={'like'}/>
+                            <IconButton onClick={() => handleDislike(msgId)}  icon={<FaThumbsDown/>} aria-label={'dislike'}/>
+                        </HStack>
+                    </PopoverBody>
+                </PopoverContent>
+            </Popover>
+        </Box>
     );
 
     const toggleMenu = (msgId?: any | null) => {
@@ -112,6 +118,7 @@ const Chatroom = () => {
             >
                 {messages.map((msg: any) => {
                     const isUser = (msg.username === user?.displayName);
+                    console.log(msg);
                     return (
                         <Flex key={msg.id} mt={3} justifyContent={isUser ? 'flex-end' : 'flex-start'}>
                             <Box maxW="60%">
@@ -131,7 +138,7 @@ const Chatroom = () => {
                                 >
                                     <Text>{msg.text}</Text>
                                     
-                                    {selectedMessageId === msg.id && renderMenu(msg.id)}
+                                    {selectedMessageId === msg.id && renderMenu(msg.id, isUser)}
                                     
                                     {msg.likes.length > 0 && (
                                         <>
