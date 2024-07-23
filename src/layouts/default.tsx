@@ -3,7 +3,7 @@ import { Box, Input, Button, VStack, Text, Card, HStack } from '@chakra-ui/react
 import { db } from '../firebase';
 import { collection, addDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { useAuth } from '../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { Route, Routes, useNavigate, useParams } from 'react-router-dom';
 import Chatroom from '../pages/default/Chatroom';
 import { UserProvider } from '../contexts/UserContext';
 import SuggestionForm from '../components/SuggestionForm';
@@ -12,9 +12,30 @@ import Header from '../components/Header';
 
 const Default = () => {
     const { user } = useAuth();
+    const { chatroomId } = useParams();
     const [userData, setUserData] = useState(null);
-   
+    const [chatroom, setChatroom] = useState<any>(null);
+    const defaultId = 'jTV4E9kk4ZS0pwtlOG9V';
     const navigate = useNavigate();
+
+    const fetchChatroom = async () => {
+        console.log("fetching class", chatroomId);
+       
+    
+        const chatroomRef = doc(db, 'chatrooms', chatroomId || defaultId);
+        const chatroomSnap: any = await getDoc(chatroomRef);
+        if (chatroomSnap.exists()) {
+            setChatroom(chatroomSnap.data());
+            console.log("Chatroom: ", chatroomSnap.data());
+        } else {
+            console.error("No such chatroom!");
+        }
+        
+    };
+
+    useEffect(() => {
+        fetchChatroom();
+    }, [chatroomId]);
 
     useEffect(() => {
         if (!user) {
@@ -42,9 +63,9 @@ const Default = () => {
     return (
             <UserProvider>
                 <VStack alignContent={"center"}>
-                    <Header />
+                    <Header chatroom={chatroom}/>
                     <Box mt={5} w={{ base: '100%', md: '60%' }}>
-                        <Chatroom />
+                        <Chatroom chatroom={chatroom}/>
                     </Box>
                 </VStack>
             </UserProvider>

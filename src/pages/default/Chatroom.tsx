@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverHeader, PopoverBody, Stack } from '@chakra-ui/react';
+import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverHeader, PopoverBody, Stack, Heading } from '@chakra-ui/react';
 import { db } from '../../firebase';
-import { collection, addDoc, onSnapshot, orderBy, query, doc, getDoc, updateDoc } from 'firebase/firestore';
+import { collection, addDoc, onSnapshot, orderBy, query, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import { FaThumbsUp, FaUserCircle, FaReply, FaRegThumbsUp, FaRegThumbsDown, FaThumbsDown } from 'react-icons/fa';
 import ProfileModal from '../../components/ProfileModal';
 import { User } from '../../types/User';
 import { useUser } from '../../contexts/UserContext';
 
 
-const Chatroom = () => {
+const Chatroom = ({chatroom} : any) => {
+    const { chatroomId } = useParams();
     const { user }: any = useAuth();
     const { userData } = useUser();
     const [messages, setMessages] = useState<any[]>([]);
@@ -20,15 +21,19 @@ const Chatroom = () => {
     const [replyTo, setReplyTo] = useState<string | null>(null);
     const endOfMessagesRef = useRef<any>(null);
     const grey = '#e0e0e0';
+    const defaultId = 'jTV4E9kk4ZS0pwtlOG9V';
 
     useEffect(() => {
-        const q = query(collection(db, 'messages'), orderBy('timestamp', 'asc'));
+        const q = query(collection(db, 'messages'), where('chatroomId', '==', chatroomId || defaultId), orderBy('timestamp', 'asc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const messagesData: any = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
             setMessages(messagesData);
+            console.log(messagesData);
         });
+        
         return () => unsubscribe();
-    }, []);
+        
+    }, [chatroomId]);
 
     useEffect(() => {
         // Scroll to bottom of messages when they update
@@ -43,6 +48,7 @@ const Chatroom = () => {
                 text: message,
                 username: user?.displayName, 
                 userId: user?.uid,
+                chatroomId: chatroomId || defaultId,
                 timestamp: new Date(),
                 likes: [],
                 dislikes: [],
@@ -110,6 +116,10 @@ const Chatroom = () => {
             setSelectedMessageId(msgId);
             setReplyTo(null);
         }
+    }
+
+    if (!chatroom) {
+        return null;
     }
 
     return (
