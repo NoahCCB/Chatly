@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverHeader, PopoverBody, Stack, Heading } from '@chakra-ui/react';
+import { Box, Input, Button, VStack, Text, Card, HStack, Flex, IconButton, useDisclosure, Icon, Menu, MenuButton, MenuList, MenuItem, Popover, PopoverTrigger, PopoverContent, PopoverArrow, PopoverCloseButton, PopoverHeader, PopoverBody, Stack, Heading, Link } from '@chakra-ui/react';
 import { db } from '../../firebase';
 import { collection, addDoc, onSnapshot, orderBy, query, doc, getDoc, updateDoc, where } from 'firebase/firestore';
 import { useAuth } from '../../contexts/AuthContext';
@@ -8,9 +8,11 @@ import { FaThumbsUp, FaUserCircle, FaReply, FaRegThumbsUp, FaRegThumbsDown, FaTh
 import ProfileModal from '../../components/ProfileModal';
 import { User } from '../../types/User';
 import { useUser } from '../../contexts/UserContext';
+import { getName } from '../../utils/ui';
+import ChatroomModal from '../../components/ChatroomModal';
 
 
-const Chatroom = ({chatroom} : any) => {
+const Chatroom = () => {
     const { chatroomId } = useParams();
     const { user }: any = useAuth();
     const { userData } = useUser();
@@ -22,8 +24,11 @@ const Chatroom = ({chatroom} : any) => {
     const endOfMessagesRef = useRef<any>(null);
     const grey = '#e0e0e0';
     const defaultId = 'jTV4E9kk4ZS0pwtlOG9V';
+    const { isOpen, onOpen, onClose } = useDisclosure();
+    const [chatroom, setChatroom] = useState<any>(null);
 
     useEffect(() => {
+        fetchChatroom();
         const q = query(collection(db, 'messages'), where('chatroomId', '==', chatroomId || defaultId), orderBy('timestamp', 'asc'));
         const unsubscribe = onSnapshot(q, (snapshot) => {
             const messagesData: any = snapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() }));
@@ -34,6 +39,22 @@ const Chatroom = ({chatroom} : any) => {
         return () => unsubscribe();
         
     }, [chatroomId]);
+
+    const fetchChatroom = async () => {
+        console.log("fetching class", chatroomId);
+       
+    
+        const chatroomRef = doc(db, 'chatrooms', chatroomId || defaultId);
+        const chatroomSnap: any = await getDoc(chatroomRef);
+        if (chatroomSnap.exists()) {
+            setChatroom(chatroomSnap.data());
+            console.log("Chatroom: ", chatroomSnap.data());
+        } else {
+            console.error("No such chatroom!");
+        }
+        
+    };
+
 
     useEffect(() => {
         // Scroll to bottom of messages when they update
@@ -118,12 +139,22 @@ const Chatroom = ({chatroom} : any) => {
         }
     }
 
+    const handleOpenModal = () => {
+        if (!chatroomId || chatroomId === defaultId) {
+            return;
+        } 
+        if (chatroom.admin === user?.uid){
+            onOpen();
+        }
+    }
+
     if (!chatroom) {
         return null;
     }
 
     return (
         <VStack w="100%" spacing={4}>
+            <Heading color={"gray.500"} onClick={handleOpenModal}><Link>{chatroom.dm ? (getName(chatroom.users, user.uid)) : (chatroom.name)}</Link></Heading>
             <Box 
                 borderRadius={"md"} 
                 bg={"white"} 
@@ -283,6 +314,7 @@ const Chatroom = ({chatroom} : any) => {
                 />
                 <Button colorScheme={"blue"} onClick={sendMessage}>Send</Button>
             </HStack>
+            <ChatroomModal isOpen={isOpen} onClose={() => {onClose(); fetchChatroom();}} chatroomId={chatroomId ? chatroomId : defaultId}/>
         </VStack>
     );
 };

@@ -1,16 +1,18 @@
 // LeftDrawer.tsx
 import React, { useEffect, useRef, useState } from 'react';
-import { Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton, useDisclosure, Button, useToast, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, FormControl, FormLabel, Input, Switch, Text, ModalFooter, VStack, Divider, HStack, InputGroup, InputLeftElement, Menu, MenuItem, MenuList, Portal, Box, MenuOptionGroup, MenuDivider, StackDivider } from '@chakra-ui/react';
+import { Drawer, DrawerBody, DrawerHeader, DrawerOverlay, DrawerContent, DrawerCloseButton, useDisclosure, Button, useToast, IconButton, Modal, ModalOverlay, ModalContent, ModalHeader, ModalCloseButton, ModalBody, FormControl, FormLabel, Input, Switch, Text, ModalFooter, VStack, Divider, HStack, InputGroup, InputLeftElement, Menu, MenuItem, MenuList, Portal, Box, MenuOptionGroup, MenuDivider, StackDivider, Icon } from '@chakra-ui/react';
 import { useAuth } from '../contexts/AuthContext';
 import { useUser } from '../contexts/UserContext';
-import { addDoc, collection, getDocs, limit, orderBy, query, serverTimestamp, startAt, where } from 'firebase/firestore';
+import { addDoc, collection, doc, getDocs, limit, orderBy, query, serverTimestamp, startAt, updateDoc, where } from 'firebase/firestore';
 import { db } from '../firebase';
-import { AddIcon, Search2Icon } from '@chakra-ui/icons';
-import { useNavigate } from 'react-router-dom';
+import { AddIcon, Search2Icon, SmallCloseIcon } from '@chakra-ui/icons';
+import { useNavigate, useParams } from 'react-router-dom';
 import Profile from './profile';
+import { getName } from '../utils/ui';
 
 const Sidebar = ({ isOpen, onClose }: any) => {
     const toast = useToast();
+    const param = useParams();
     const { user } = useAuth();
     const { userData } = useUser();
     const navigate = useNavigate();
@@ -76,8 +78,32 @@ const Sidebar = ({ isOpen, onClose }: any) => {
             if (!user?.uid || !user?.displayName) {
                 return;
             }
+
+            const chatroomLower = chatroomName.toLowerCase();
+
+            // Check for existing public chatroom with the same lowercase name
+            const existingChatroomQuery = query(
+                collection(db, 'chatrooms'),
+                where('nameLower', '==', chatroomLower),
+                where('private', '==', false)
+            );
+
+            const existingChatrooms = await getDocs(existingChatroomQuery);
+
+            if (!existingChatrooms.empty) {
+                toast({
+                    title: "Chatroom name taken.",
+                    description: "A public chatroom with this name already exists.",
+                    status: "error",
+                    duration: 5000,
+                    isClosable: true,
+                });
+                return;
+            }
+
             const chatroomRef = await addDoc(collection(db, 'chatrooms'), {
                 name: chatroomName, // You might want to prompt the user for a name
+                nameLower: chatroomName.toLowerCase(),
                 users: {
                     [user?.uid]: userData?.displayName
                 },
@@ -86,7 +112,8 @@ const Sidebar = ({ isOpen, onClose }: any) => {
                 totalUsers: 1,
                 private: isPrivate,
                 admin: user?.uid,
-                dm: false
+                dm: false,
+                active: true
             });
             toast({
                 title: "Chatroom created.",
@@ -113,7 +140,29 @@ const Sidebar = ({ isOpen, onClose }: any) => {
 
     const handleChatroomClick = (chatroomId: string) => {
         navigate(`/chatroom/${chatroomId}`);
+        onClose();
     };
+
+    const handleMessageUser = () => {
+        setSelectedUid(null); 
+        onClose();
+    }
+
+    const handleDeleteChat =  async (chatroomId: any) => {
+        try {
+            const chatroomRef = doc(db, "chatrooms", chatroomId);
+    
+            await updateDoc(chatroomRef, {
+              active: false
+            });
+            console.log("Chatroom marked as inactive.");
+        } catch (error) {
+            console.error("Error updating chatroom: ", error);
+        }
+        if (param === chatroomId) {
+            
+        }
+    }
 
     const handleSearchChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         setIsMenuOpen(true);
@@ -129,7 +178,7 @@ const Sidebar = ({ isOpen, onClose }: any) => {
         try {
             console.log("looking");
             const usersRef = collection(db, 'users');
-            const usersQuery = query(usersRef, orderBy('displayName'), startAt(queryText), limit(5));
+            const usersQuery = query(usersRef, orderBy('displayNameLower'), startAt(queryText.toLowerCase()), limit(5));
             const usersSnapshot = await getDocs(usersQuery);
             const users = usersSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
             console.log(users);
@@ -146,25 +195,10 @@ const Sidebar = ({ isOpen, onClose }: any) => {
         }
     };
 
-    const keepFocusOnInput = () => {
-        if (inputRef.current) {
-            inputRef.current.focus();
-        }
-    };
-
     const handleBlur = (e: React.FocusEvent<HTMLDivElement>) => {
         if (!e.currentTarget.contains(e.relatedTarget as Node)) {
             setIsMenuOpen(false);
         }
-    };
-
-    const getName = (users: { [key: string]: string }): string | null => {
-        for (const uid in users) {
-            if (users.hasOwnProperty(uid) && uid !== user?.uid) {
-                return users[uid]; // Return the displayName of the first user that doesn't match the current user's UID
-            }
-        }
-        return null; // Return null if no other user is found
     };
     
     return (
@@ -197,11 +231,10 @@ const Sidebar = ({ isOpen, onClose }: any) => {
                                 placeholder='Search users and rooms...' 
                                 value={searchQuery}
                                 onChange={handleSearchChange}
-                                onBlur={() => {keepFocusOnInput();}}
                             />
                         </InputGroup>
                         <Box position="absolute" bottom={0} w="full">
-                            {isMenuOpen && (searchResultsUsers.length > 0 || searchResultsChatrooms.length > 0) && (
+                            {isMenuOpen && (
                                 <Menu isOpen>
                                     <MenuList minW="272px">
                                         <MenuOptionGroup title="Users">
@@ -244,10 +277,12 @@ const Sidebar = ({ isOpen, onClose }: any) => {
                     <VStack spacing={4} align="stretch">
                         <Text fontWeight={"bold"}>Direct Messages</Text>
                         {directMessages.map(dm => {
-                            
+                            if (!dm.active) {
+                                return null;
+                            }
                             return (
-                                <Button key={dm.id} w="full" justifyContent="flex-start" onClick={() => {handleChatroomClick(dm.id);}}>
-                                    <Text>{getName(dm.users)}</Text>
+                                <Button key={dm.id} w="full" onClick={() => {handleChatroomClick(dm.id);}} justifyContent={"space-between"}>
+                                    <Text>{getName(dm.users, user?.uid)}</Text>
                                 </Button>
                             )
                         })}
@@ -288,7 +323,7 @@ const Sidebar = ({ isOpen, onClose }: any) => {
                     </ModalFooter>
                 </ModalContent>
             </Modal>
-            <Profile uid={selectedUid}/>
+            <Profile uid={selectedUid} setUid={setSelectedUid}/>
             </>
     );
 };

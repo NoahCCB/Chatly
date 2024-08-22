@@ -8,6 +8,7 @@ import Login from './pages/login/Login';
 import Register from './pages/login/Registration';
 import { AuthProvider } from './contexts/AuthContext';
 import Default from './layouts/default';
+import VerifyEmail from './pages/login/VerifyEmail';
 
 function App() {
   return (
@@ -20,6 +21,7 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/chatroom" element={<Default />} />
             <Route path="/chatroom/:chatroomId" element={<Default />} />
+            <Route path="/verification" element={<VerifyEmail />} />
           </Routes>
           </Box>
         </AuthProvider>

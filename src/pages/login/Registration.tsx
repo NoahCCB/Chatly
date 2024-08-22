@@ -13,7 +13,7 @@ import {
   InputGroup,
   Box,
 } from '@chakra-ui/react';
-import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
+import { createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from 'firebase/auth';
 import { auth, db } from '../../firebase'; // Import your Firebase auth instance
 import { useNavigate } from 'react-router-dom'; // Import useNavigate from react-router-dom
 import { collection, doc, getDocs, query, setDoc, where } from 'firebase/firestore';
@@ -43,21 +43,24 @@ const Register: React.FC = () => {
             
             const userCredential = await createUserWithEmailAndPassword(auth, email, password);
 
-            const userDocRef = doc(db, 'users', userCredential.user.uid);
+            const user = userCredential.user;
+
+            const userDocRef = doc(db, 'users', user.uid);
             
             await setDoc(userDocRef, {
                 displayName: username,
                 profileColor: '#8edafa', // Default profile color
+                displayNameLower: username.toLowerCase()
             });
-
-            await updateProfile(userCredential.user, { 
-                displayName: username
-            });
-
             
-            setUser(userCredential.user);
+
+            await updateProfile(user, { displayName: username });
+
+            await sendEmailVerification(user);
             
-            navigate('/chatroom');
+            setUser(user);
+            
+            navigate('/verification');
             console.log('Registration successful!');
         } catch (error: any) {
             setError(error.message);

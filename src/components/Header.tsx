@@ -9,8 +9,9 @@ import { User } from '../types/User';
 import SuggestionDrawer from './Suggestion';
 import { ChevronRightIcon, ChevronUpIcon, HamburgerIcon } from '@chakra-ui/icons';
 import Sidebar from './Sidebar';
+import { updateUsersDisplayNameLower } from '../utils/api';
 
-const Header = ({ chatroom }: any) => {
+const Header = () => {
     const { user } = useAuth();
     const { userData } = useUser();
     const { isOpen: isProfileOpen, onOpen: onProfileOpen, onClose: onProfileClose } = useDisclosure();
@@ -23,7 +24,7 @@ const Header = ({ chatroom }: any) => {
 
     useEffect(() => {
         onSidebarClose();
-    }, [chatroom]);
+    }, []);
 
     return (
         <>
@@ -34,7 +35,7 @@ const Header = ({ chatroom }: any) => {
                     aria-label={''}
                     onClick={onSidebarOpen}
                 />
-                <Link fontSize="2xl" color="gray.600">{chatroom?.name}</Link>
+                
                 <Flex alignItems="center">
                     <Button
                     size = {buttonSize}

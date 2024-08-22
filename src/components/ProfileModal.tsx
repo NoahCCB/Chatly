@@ -29,7 +29,7 @@ const ProfileModal = ({ isOpen, onClose, user }: any) => {
 
     const handleSave = async () => {
         if (username !== userData?.displayName) {
-            const usernameQuery = query(collection(db, 'users'), where('displayName', '==', username));
+            const usernameQuery = query(collection(db, 'users'), where('displayNameLower', '==', username.toLowerCase()));
             const querySnapshot = await getDocs(usernameQuery);
 
             if (!querySnapshot.empty) {

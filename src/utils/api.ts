@@ -1,7 +1,7 @@
 import { collection, getDocs, updateDoc, doc, writeBatch } from 'firebase/firestore';
 import { db } from '../firebase'; // Make sure to import your Firestore instance
 
-const updateUsersDisplayNameLower = async () => {
+export const updateUsersDisplayNameLower = async () => {
     const usersRef = collection(db, 'users');
     const usersSnapshot = await getDocs(usersRef);
 
